@@ -1,6 +1,8 @@
 { lib
+, stdenv
 , buildGoModule
 , fetchFromGitHub
+, git
 , installShellFiles
 , kubescape
 , testers
@@ -8,52 +10,54 @@
 
 buildGoModule rec {
   pname = "kubescape";
-  version = "2.9.1";
+  version = "3.0.9";
 
   src = fetchFromGitHub {
     owner = "kubescape";
-    repo = pname;
+    repo = "kubescape";
     rev = "refs/tags/v${version}";
-    hash = "sha256-FKWR3pxFtJBEa14Mn3RKsLvrliHaj6TuF4F2JLtw2qA=";
+    hash = "sha256-pAe289XwKq/PO39/Wt60uipt4Z0ZD5f73pDaOTXXwi0=";
     fetchSubmodules = true;
   };
 
-  vendorHash = "sha256-zcv8oYm6srwkwT3pUECtTewyqVVpCIcs3i0VRTRft68=";
+  vendorHash = "sha256-UWmsS79N8ooFr4qpKqOVC14cgf5ckAQwzROHGl1smD8=";
+
+  subPackages = [
+    "."
+  ];
 
   nativeBuildInputs = [
     installShellFiles
   ];
 
+  nativeCheckInputs = [
+    git
+  ];
+
   ldflags = [
     "-s"
     "-w"
-    "-X=github.com/kubescape/kubescape/v2/core/cautils.BuildNumber=v${version}"
+    "-X=github.com/kubescape/kubescape/v3/core/cautils.BuildNumber=v${version}"
   ];
 
-  subPackages = [ "." ];
-
   preCheck = ''
-    # Feed in all but the integration tests for testing
-    # This is because subPackages above limits what is built to just what we
-    # want but also limits the tests
-    # Skip httphandler tests - the checkPhase doesn't care about excludedPackages
-    getGoDirs() {
-      go list ./... | grep -v httphandler
-    }
+    export HOME=$(mktemp -d)
 
-    # remove tests that use networking
+    # Remove tests that use networking
     rm core/pkg/resourcehandler/urlloader_test.go
     rm core/pkg/opaprocessor/*_test.go
     rm core/cautils/getter/downloadreleasedpolicy_test.go
+    rm core/core/initutils_test.go
+    rm core/core/list_test.go
 
-    # remove tests that use networking
+    # Remove tests that use networking
     substituteInPlace core/pkg/resourcehandler/repositoryscanner_test.go \
-      --replace "TestScanRepository" "SkipScanRepository" \
-      --replace "TestGit" "SkipGit"
+      --replace-fail "TestScanRepository" "SkipScanRepository" \
+      --replace-fail "TestGit" "SkipGit"
 
-    # remove test that requires networking
+    # Remove test that requires networking
     substituteInPlace core/cautils/scaninfo_test.go \
-      --replace "TestSetContextMetadata" "SkipSetContextMetadata"
+      --replace-fail "TestSetContextMetadata" "SkipSetContextMetadata"
   '';
 
   postInstall = ''
@@ -71,7 +75,6 @@ buildGoModule rec {
 
   meta = with lib; {
     description = "Tool for testing if Kubernetes is deployed securely";
-    mainProgram = "kubescape";
     homepage = "https://github.com/kubescape/kubescape";
     changelog = "https://github.com/kubescape/kubescape/releases/tag/v${version}";
     longDescription = ''
@@ -87,5 +90,7 @@ buildGoModule rec {
     '';
     license = licenses.asl20;
     maintainers = with maintainers; [ fab jk ];
+    mainProgram = "kubescape";
+    broken = stdenv.isDarwin;
   };
 }

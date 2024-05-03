@@ -2,38 +2,35 @@
 
 python3.pkgs.buildPythonApplication rec {
   pname = "instawow";
-  version = "3.2.0";
+  version = "4.1.1";
   pyproject = true;
 
   src = fetchFromGitHub {
     owner = "layday";
     repo = pname;
     rev = "refs/tags/v${version}";
-    sha256 = "sha256-eBpX+ojlrWwRXuMijnmb4lNlxIJ40Q9RUqS6txPBDiM=";
+    sha256 = "sha256-RRBuFja5vejzjrtOvRBIjT7sq/Wg/39FA/o9O8c2B0o=";
   };
 
   extras = [ ];  # Disable GUI, most dependencies are not packaged.
 
   nativeBuildInputs = with python3.pkgs; [
-    poetry-core
-    poetry-dynamic-versioning
+    hatchling
+    hatch-vcs
   ];
   propagatedBuildInputs = with python3.pkgs; [
     aiohttp
     aiohttp-client-cache
-    alembic
     attrs
     cattrs
     click
+    diskcache
     iso8601
     loguru
-    mako
     packaging
     pluggy
     prompt-toolkit
-    questionary
     rapidfuzz
-    sqlalchemy
     truststore
     typing-extensions
     yarl
